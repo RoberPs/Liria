@@ -305,26 +305,41 @@ body {
 
 /* --- RESPONSIVIDAD MÓVIL --- */
 @media (max-width: 600px) {
+  html, body {
+    overflow-x: hidden; /* CRUCIAL: Bloqueo global */
+    width: 100vw;
+    position: fixed; /* Evita el "bounce" elástico de iOS/Android */
+    height: 100%;
+  }
+
   body {
-    align-items: flex-start; /* Permitir que crezca desde arriba */
-    overscroll-behavior: none; /* Evita el efecto "rebote" al hacer scroll */
+    align-items: flex-start;
+    justify-content: flex-start;
+    display: block; /* Desactivar flex center para evitar problemas de cálculo */
+    overscroll-behavior: none;
+  }
+
+  #root {
+    width: 100%;
+    height: 100%;
   }
 
   .chat-container {
     width: 100%;
-    height: 100dvh; /* Altura dinámica del viewport */
+    height: 100dvh;
     max-width: 100%;
     margin-top: 0;
     border-radius: 0;
     border: none;
     box-shadow: none;
-    overflow-x: hidden; /* IMPORTANTE: Bloquea el scroll horizontal */
+    overflow-x: hidden;
   }
 
   .chat-header {
     border-radius: 0;
-    /* Añadimos soporte para "safe-area" (el notch o barra de estado) */
+    /* Añadimos soporte para "safe-area" */
     padding-top: calc(1rem + env(safe-area-inset-top)); 
+    background: white; /* Asegurar fondo */
   }
 
   /* El avatar ya no puede salir por arriba (-45px) porque se cortaría.
