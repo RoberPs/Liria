@@ -231,7 +231,7 @@ body {
 .input-container {
   background: white;
   padding: 8px;
-  border-radius: 50px;
+  border-radius: 25px; /* Menos ovalado, más rectangular redondeado */
   box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); /* Sombra fuerte */
   display: flex;
   align-items: center;
