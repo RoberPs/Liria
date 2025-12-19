@@ -222,49 +222,16 @@ body {
 
 /* --- INPUT FLOTANTE --- */
 .input-area {
-  padding: 20px;
-  background: transparent; /* Transparente para efecto flotante */
+  padding: 10px 15px; /* Menos padding vertical para parecer más a app */
+  background: transparent;
   position: relative;
 }
 
-/* Efecto de contenedor flotante blanco */
-.input-container {
-  background: white;
-  padding: 8px;
-  border-radius: 15px; /* Rectangular con bordes suaves, no ovalado */
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); /* Sombra fuerte */
-  display: flex;
-  align-items: center;
-  border: 1px solid #f1f5f9;
-}
+/* El nuevo input container ahora se maneja más en inline-style en el JSX para la estructura flex,
+   pero mantenemos los estilos base de "tarjeta blanca" aquí para limpieza si se desea mover. 
+   Por ahora, limpiamos reglas viejas que chocan. */
 
-.input-container input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  padding: 12px 20px;
-  font-size: 1rem;
-  outline: none;
-  color: #334155;
-}
-
-.send-btn {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-  background: var(--primary-gradient);
-  border: none;
-  color: white;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s;
-  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
-}
-.send-btn:hover:not(:disabled) {
-  transform: scale(1.05);
-}
+/* Loading dots */
 .send-btn svg {
   width: 20px;
   height: 20px;

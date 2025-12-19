@@ -284,53 +284,46 @@ const ChatInterface = ({ onLogout }) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* --- INPUT FLOTANTE --- */}
-      <form className="input-area" onSubmit={handleSendMessage}>
-        <div className="input-container">
+      {/* --- INPUT FLOTANTE TIPO WHATSAPP --- */}
+      <form className="input-area" onSubmit={handleSendMessage} style={{ display: 'flex', alignItems: 'flex-end', gap: '8px' }}>
+        <div className="input-container" style={{ flex: 1, borderRadius: '25px', display: 'flex', alignItems: 'center', padding: '8px 15px', position: 'relative' }}>
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Escribe tu consulta..."
+            placeholder="Mensaje"
             disabled={isLoading}
+            style={{ width: '100%', border: 'none', outline: 'none', fontSize: '1rem', background: 'transparent' }}
           />
-          <button 
-            type="button" 
-            className={`mic-btn ${isListening ? 'listening' : ''}`}
-            onClick={handleMicClick}
-            title={isListening ? "Detener escucha" : "Usar voz"}
-            style={{ 
-              marginRight: '8px', 
-              background: 'none', 
-              border: 'none', 
-              cursor: 'pointer', 
-              color: isListening ? '#ef4444' : '#666',
-              transition: 'color 0.2s',
-              animation: isListening ? 'pulse 1.5s infinite' : 'none'
-            }}
-          >
-            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-              {isListening ? (
-                <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
-              ) : (
-                <>
-                  <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                  <path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/>
-                </>
-              )}
-            </svg>
-            <style>{`
-              @keyframes pulse {
-                0% { transform: scale(1); }
-                50% { transform: scale(1.1); }
-                100% { transform: scale(1); }
-              }
-            `}</style>
-          </button>
-          <button type="submit" className="send-btn" disabled={isLoading || !inputValue.trim()}>
-            <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
-          </button>
         </div>
+        
+        {/* Botón de Acción Dinámico (Micro o Enviar) */}
+        <button 
+          type={inputValue.trim() ? "submit" : "button"}
+          className="action-btn"
+          onClick={(e) => {
+             if (!inputValue.trim()) {
+               handleMicClick(e);
+             }
+             // Si hay texto, el tipo "submit" del form lo enviará, no hace falta handler aquí
+          }}
+          style={{ 
+            width: '48px', height: '48px', borderRadius: '50%', border: 'none', 
+            background: inputValue.trim() ? 'var(--primary-gradient)' : '#00a884', // Verde WhatsApp para micro? O primario
+            color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center',
+            cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', flexShrink: 0
+          }}
+        >
+           {inputValue.trim() ? (
+             /* Icono Enviar */
+             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+           ) : (
+             /* Icono Micro */
+             <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" style={{ animation: isListening ? 'pulse 1.5s infinite' : 'none' }}>
+               <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" />
+             </svg>
+           )}
+        </button>
       </form>
     </div>
   );
