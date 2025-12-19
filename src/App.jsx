@@ -12,7 +12,7 @@ function App() {
   return (
     <div className="app-layout">
       <main className="main-content">
-        <ChatInterface />
+        <ChatInterface onLogout={() => setIsAuthenticated(false)} />
       </main>
     </div>
   );
