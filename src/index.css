@@ -1,0 +1,342 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap");
+
+:root {
+  /* --- PALETA DE COLORES (Inspirada en Hibot pero Azul Legal) --- */
+  --primary-color: #2563eb; /* Azul intenso */
+  --primary-gradient: linear-gradient(135deg, #2563eb 0%, #4f46e5 100%);
+
+  --bg-page: #eef2ff; /* Fondo página azul muy pálido */
+  --card-bg: #ffffff; /* Fondo de la tarjeta */
+
+  --text-main: #1f2937;
+  --text-secondary: #6b7280;
+
+  /* Burbujas */
+  --bubble-user-bg: #4f46e5; /* Violeta/Azul para usuario */
+  --bubble-user-text: #ffffff;
+  --bubble-bot-bg: #f8fafc; /* Gris muy claro para bot */
+  --bubble-bot-text: #334155;
+
+  /* Sombras Suaves (Clave del diseño) */
+  --shadow-card: 0 20px 40px -5px rgba(0, 0, 0, 0.1),
+    0 10px 20px -5px rgba(0, 0, 0, 0.04);
+  --shadow-float: 0 10px 25px rgba(37, 99, 235, 0.25); /* Sombra azulada */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: "Poppins", sans-serif; /* Tipografía moderna y redonda */
+  background-color: var(--bg-page);
+  /* Fondo decorativo opcional */
+  background-image: radial-gradient(
+    circle at 10% 20%,
+    rgb(224, 231, 255) 0%,
+    rgb(255, 255, 255) 90%
+  );
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* --- CONTENEDOR PRINCIPAL --- */
+.chat-container {
+  width: 100%;
+  max-width: 450px; /* Más estrecho, tipo móvil como en la foto */
+  height: 85vh;
+  background: var(--card-bg);
+  border-radius: 30px; /* Bordes muy redondeados */
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  margin-top: 40px; /* Espacio para que quepa la cabeza del robot */
+}
+
+/* --- CABECERA (Con efecto flotante) --- */
+.chat-header {
+  padding: 1rem 1.5rem;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+  border-bottom: 1px solid #f1f5f9;
+  border-radius: 30px 30px 0 0;
+  background: white;
+}
+
+/* El contenedor del Avatar que sobresale */
+.floating-avatar-container {
+  width: 90px;
+  height: 90px;
+  background: white;
+  border-radius: 50%;
+  padding: 5px;
+  position: absolute;
+  top: -45px; /* Esto hace que salga hacia arriba */
+  left: 50%;
+  transform: translateX(-50%);
+  box-shadow: var(--shadow-float);
+  z-index: 20;
+}
+
+.floating-avatar-container img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid white; /* Borde blanco para limpiar */
+}
+
+.brand-title {
+  margin-top: 45px; /* Espacio para no chocar con el avatar */
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1e293b;
+  letter-spacing: -0.5px;
+}
+.brand-subtitle {
+  font-size: 0.8rem;
+  color: var(--primary-color);
+  font-weight: 500;
+  margin-bottom: 10px;
+}
+
+/* Botón papelera discreto a la derecha */
+.header-actions {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+}
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #cbd5e1;
+  transition: color 0.2s;
+}
+.clear-btn:hover {
+  color: #ef4444;
+}
+
+/* --- ÁREA DE MENSAJES --- */
+.messages-area {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  background: linear-gradient(to bottom, #ffffff, #f8fafc);
+}
+
+/* Scrollbar invisible */
+.messages-area::-webkit-scrollbar {
+  width: 0px;
+}
+
+.message-wrapper {
+  display: flex;
+  flex-direction: column;
+  max-width: 85%;
+  animation: slideUp 0.3s ease-out;
+}
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-wrapper.user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+.message-wrapper.bot {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+/* Burbujas */
+.message-bubble {
+  padding: 14px 18px;
+  border-radius: 20px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03); /* Sombra muy sutil */
+  position: relative;
+  word-wrap: break-word;
+}
+
+/* Bot: Blanco con borde sutil */
+.message-bubble.bot {
+  background: white;
+  color: var(--bubble-bot-text);
+  border-top-left-radius: 4px; /* Pico arriba izq */
+  border: 1px solid #f1f5f9;
+}
+/* Nombre del bot pequeño arriba */
+.sender-name {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  margin-left: 10px;
+}
+
+/* Usuario: Color sólido */
+.message-bubble.user {
+  background: var(--primary-gradient);
+  color: white;
+  border-top-right-radius: 4px; /* Pico arriba der */
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.3);
+}
+
+/* Error */
+.message-bubble.error {
+  background: #fef2f2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+  font-size: 0.9rem;
+}
+
+/* Links */
+.markdown-content a {
+  color: #2563eb;
+  text-decoration: none;
+  font-weight: 600;
+}
+.markdown-content a:hover {
+  text-decoration: underline;
+}
+
+/* --- INPUT FLOTANTE --- */
+.input-area {
+  padding: 20px;
+  background: transparent; /* Transparente para efecto flotante */
+  position: relative;
+}
+
+/* Efecto de contenedor flotante blanco */
+.input-container {
+  background: white;
+  padding: 8px;
+  border-radius: 50px;
+  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); /* Sombra fuerte */
+  display: flex;
+  align-items: center;
+  border: 1px solid #f1f5f9;
+}
+
+.input-container input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  padding: 12px 20px;
+  font-size: 1rem;
+  outline: none;
+  color: #334155;
+}
+
+.send-btn {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+}
+.send-btn:hover:not(:disabled) {
+  transform: scale(1.05);
+}
+.send-btn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.5;
+  margin-left: 2px;
+}
+
+/* Loading dots */
+.typing-indicator {
+  display: flex;
+  gap: 4px;
+  padding: 10px;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  background: #cbd5e1;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite;
+}
+.dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* --- RESPONSIVIDAD MÓVIL --- */
+@media (max-width: 600px) {
+  body {
+    align-items: flex-start; /* Permitir que crezca desde arriba */
+  }
+
+  .chat-container {
+    width: 100%;
+    height: 100dvh;
+    max-width: 100%;
+    margin-top: 0;
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+
+  .chat-header {
+    border-radius: 0;
+    /* Ajustamos el padding para acomodar el avatar que bajará */
+    padding-top: 1rem;
+  }
+
+  /* El avatar ya no puede salir por arriba (-45px) porque se cortaría.
+     Lo bajamos para que esté dentro de la cabecera, pero "flotando" visualmente */
+  .floating-avatar-container {
+    top: 5px;
+    width: 75px;
+    height: 75px;
+    box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2); /* Sombra un poco más suave */
+  }
+
+  .brand-title {
+    /* Ajustamos margen para que no choque con el avatar que ha bajado */
+    margin-top: 60px;
+    font-size: 1.4rem;
+  }
+}
