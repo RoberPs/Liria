@@ -2,7 +2,6 @@
  * Service to communicate with the n8n webhook.
  */
 
-// TODO: Replace this with the actual Webhook URL from the user
 const WEBHOOK_URL = 'https://n8n.automatizacionro.work/webhook/n8n_chat';
 
 export const sendMessageToWebhook = async (message, history = [], sessionId) => {
@@ -11,6 +10,7 @@ export const sendMessageToWebhook = async (message, history = [], sessionId) => 
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': 'Basic ' + btoa(`${import.meta.env.VITE_N8N_USERNAME}:${import.meta.env.VITE_N8N_PASSWORD}`)
       },
       body: JSON.stringify({
         chatInput: message,
