@@ -11,7 +11,7 @@ const ChatInterface = ({ onLogout }) => {
   const [messages, setMessages] = useState([
     {
       id: 1,
-      text: "¡Hola Silvia! Soy Liria. Estoy lista para ayudarte con cualquier consulta sobre el BOE.",
+      text: "¡Hola! Soy Liria. Estoy lista para ayudarte con cualquier consulta sobre el BOE.",
       sender: 'bot',
       timestamp: new Date()
     }
@@ -31,7 +31,7 @@ const ChatInterface = ({ onLogout }) => {
 
   const handleClearChat = () => {
     if (window.confirm("¿Reiniciar conversación?")) {
-      setMessages([{ id: 1, text: "¡Hola Silvia! Soy Liria. Estoy lista para ayudarte con cualquier consulta sobre el BOE.", sender: 'bot', timestamp: new Date() }]);
+      setMessages([{ id: 1, text: "¡Hola! Soy Liria. Estoy lista para ayudarte con cualquier consulta sobre el BOE.", sender: 'bot', timestamp: new Date() }]);
       conversationId.current = `session_${Date.now()}`;
     }
   };
