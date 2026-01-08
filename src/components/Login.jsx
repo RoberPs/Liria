@@ -6,7 +6,7 @@ const Login = ({ onLogin }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === 'Liria2025Pastor') {
+    if (password === import.meta.env.VITE_APP_PASSWORD) {
       onLogin();
     } else {
       setError(true);
