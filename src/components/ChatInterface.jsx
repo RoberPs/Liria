@@ -8,14 +8,7 @@ const botAvatarUrl = "/user_avatar.jpg"; // Avatar local desde public/user_avata
 const humanAvatarUrl = "/human_avatar.jpg"; // Avatar del usuario
 
 const ChatInterface = ({ onLogout }) => {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "¡Hola! Soy Liria. Estoy lista para ayudarte con el BOE.\n\n¿Te gustaría ver las disposiciones generales de hoy o prefieres que profundicemos en una ley en concreto?",
-      sender: 'bot',
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
@@ -29,10 +22,29 @@ const ChatInterface = ({ onLogout }) => {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
+  const initialMessageText = "¡Hola! Soy Liria. Estoy lista para ayudarte con el BOE.\n\n¿Te gustaría ver las disposiciones generales de hoy o prefieres que profundicemos en una ley en concreto?";
+
+  const showInitialGreeting = async () => {
+    setIsLoading(true);
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    setMessages([{
+      id: 1,
+      text: initialMessageText,
+      sender: 'bot',
+      timestamp: new Date()
+    }]);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    showInitialGreeting();
+  }, []);
+
   const handleClearChat = () => {
     if (window.confirm("¿Reiniciar conversación?")) {
-      setMessages([{ id: 1, text: "¡Hola! Soy Liria. Estoy lista para ayudarte con el BOE.\n\n¿Te gustaría ver las disposiciones generales de hoy o prefieres que profundicemos en una ley en concreto?", sender: 'bot', timestamp: new Date() }]);
+      setMessages([]);
       conversationId.current = `session_${Date.now()}`;
+      showInitialGreeting();
     }
   };
 
