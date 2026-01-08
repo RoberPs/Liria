@@ -161,7 +161,7 @@ const ChatInterface = ({ onLogout }) => {
         
         {/* Títulos */}
         <h1 className="brand-title" style={{ fontFamily: '"Playfair Display", serif' }}>Liria</h1>
-        <p className="brand-subtitle">Jurista Especializada en Penal</p>
+        <p className="brand-subtitle">Jurista Especializada en BOE</p>
         
         {/* Botón borrar discreto */}
         <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
