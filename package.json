@@ -1,7 +1,9 @@
 {
-  "name": "magnetic-quasar",
+  "name": "liria-jurista",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
+  "description": "Asistente jurídico inteligente especializado en el BOE, integrado con n8n.",
+  "author": "Equipo Liria",
   "type": "module",
   "scripts": {
     "dev": "vite",

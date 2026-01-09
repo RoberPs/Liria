@@ -27,7 +27,7 @@ export const sendMessageToWebhook = async (message, history = [], sessionId) => 
     const text = await response.text();
     try {
       return JSON.parse(text);
-    } catch (e) {
+    } catch (_e) {
       console.error("JSON Parse Error. Raw text:", text);
       // Throw a descriptive error that will be shown in the chat
       throw new Error(`Respuesta inválida del servidor (JSON malformado). Esto suele pasar si el texto en n8n contiene comillas sin escapar. Inicio de la respuesta: ${text.substring(0, 50)}...`);

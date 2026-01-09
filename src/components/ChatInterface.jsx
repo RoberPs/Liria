@@ -3,7 +3,6 @@ import ReactMarkdown from 'react-markdown';
 import { sendMessageToWebhook } from '../services/api';
 
 // Icono del mazo o robot "Lindo" para que destaque arriba
-// Icono del mazo o robot "Lindo" para que destaque arriba
 const botAvatarUrl = "/user_avatar.jpg"; // Avatar local desde public/user_avatar.jpg
 const humanAvatarUrl = "/human_avatar.jpg"; // Avatar del usuario
 
@@ -22,7 +21,7 @@ const ChatInterface = ({ onLogout }) => {
 
   useEffect(() => { scrollToBottom(); }, [messages]);
 
-  const initialMessageText = "¡Hola! Soy Liria. Estoy lista para ayudarte con el BOE.\n\n¿Te gustaría ver las disposiciones generales de hoy o prefieres que profundicemos en una ley en concreto?";
+  const initialMessageText = "¡Hola! Soy Liria 👋. Estoy lista para ayudarte con el BOE. ¿Te gustaría ver las disposiciones generales de hoy 🌅 o prefieres que profundicemos en una ley 🔎 en concreto?";
 
   const showInitialGreeting = async () => {
     setIsLoading(true);
@@ -125,7 +124,7 @@ const ChatInterface = ({ onLogout }) => {
       let botText = response.respuesta || response.output || response.text || response.message || "Respuesta recibida del webhook.";
       botText = formatBotResponse(botText);
       
-      // FIX: Capturar enlace del BOE si viene en la respuesta
+      // Extract BOE link if present in the response
       const botLink = response.link || response.url || response.boe_url || response.source;
 
       const newBotMessage = {
@@ -217,14 +216,14 @@ const ChatInterface = ({ onLogout }) => {
                   <div className="markdown-content">
                     <ReactMarkdown 
                       components={{
-                        a: ({ node, ...props }) => (
+                        a: ({ node: _node, ...props }) => (
                           <a {...props} target="_blank" rel="noopener noreferrer" />
                         )
                       }}
                     >
                       {msg.text}
                     </ReactMarkdown>
-                    {/* --- FIX: Mostrar enlace si existe --- */}
+                    {/* Display BOE link if available */}
                     {msg.boeLink && (
                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.1)' }}>
                         <a 
