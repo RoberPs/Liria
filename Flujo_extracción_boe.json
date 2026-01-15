@@ -1,0 +1,877 @@
+{
+  "name": "Flujo_extracción_boe",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtDay": [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -1232,
+        192
+      ],
+      "id": "45e5015a-7be2-4d70-bd97-27781e48e393",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analiza el siguiente texto legal extraído hoy del BOE y genera el resumen siguiendo estrictamente tu formato HTML de sistema:\n\n--- INICIO DEL TEXTO LEGAL ---\n{{ $json.data }} \n",
+        "options": {
+          "systemMessage": "=Eres un Analista Jurídico Senior especializado en Derecho Penal y Procesal. Tu trabajo consiste en leer textos legislativos del BOE (Boletín Oficial del Estado) y generar resúmenes ejecutivos para abogados ocupados.\n\n\nTus objetivos son:\n1. Identificar el núcleo de la norma: ¿Qué cambia realmente?\n2. Descartar el lenguaje burocrático, preámbulos extensos y formalismos vacíos.\n3. Centrarte en modificaciones del Código Penal, Ley de Enjuiciamiento Criminal o cambios en competencias judiciales.\n4- Identifica siempre la fecha actual {{ $now.format('yyyy-MM-dd') }}).\n\nInstrucciones de formato:\n- Genera la respuesta EXCLUSIVAMENTE en formato HTML limpio (sin etiquetas <html>, <head> o <body>), listo para ser insertado dentro de un <div>.\n- Usa un tono profesional, directo y objetivo.\n\nEstructura de la respuesta deseada:\n<h3>[Título corto y descriptivo de la norma]</h3>\n<p><strong>🎯 Objetivo:</strong> [Una sola frase que resuma para qué sirve esta ley].</p>\n<ul>\n    <li><strong>Cambios Clave:</strong> [Lista breve de los 2-3 puntos más importantes. Si hay modificación de penas o nuevos delitos, menciónalo explícitamente].</li>\n    <li><strong>Impacto Práctico:</strong> [¿A quién afecta directamente? Jueces, fiscales, ciudadanos, empresas...].</li>\n</ul>\n<p><strong>📅 Entrada en vigor:</strong> [Fecha exacta o plazo indicado en el texto. Si no se menciona, indica \"Consultar texto original\"].</p>\n<hr>"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3,
+      "position": [
+        560,
+        96
+      ],
+      "id": "6dd2d05a-9703-4af5-8f83-7da5bfae3bf8",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        640,
+        320
+      ],
+      "id": "044db63b-0f59-4161-9ee9-355b2d04b8a3",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dLNAkT6kyoQxCSbF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Obtenención de leyes y/o modifcaciónes del xml/api del boe de lunes a viernes a las 8:00 Am cada dia.",
+        "height": 608,
+        "width": 528,
+        "color": 6
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1328,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "edf0ee58-1744-4a1d-9345-caa1d64cd7e7",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "Filtrado de tipo de leyes según parámetros y departamentos solo para la sección 1 BOE. \nEvaluación de contenido .\nEnvío de email de confirmación si no se existen datos.",
+        "height": 608,
+        "width": 416,
+        "color": 4
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -800,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "1ce0220b-d9c6-4b95-aa77-1819fae50210",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "jsCode": "\n\n\n// 1. Obtenemos los datos\nconst items = $input.all();\nconst leyesEncontradas = [];\n\n// Función recursiva\nfunction buscarLeyes(nodo, enSeccion1 = false, departamentoActual = \"Desconocido\") {\n    \n    if (!nodo || typeof nodo !== 'object') return;\n\n    // --- A. DETECTAR SI ESTAMOS EN SECCIÓN 1 (LEYES) ---\n    // Mantenemos esta lógica para asegurar que solo sacamos Sección 1\n    // y no Oposiciones (2B), Anuncios (5), etc.\n    let estamosEnSeccion1 = enSeccion1;\n    \n    // Si el nodo marca el inicio de la sección 1\n    if (nodo.codigo === \"1\" || (nodo.nombre && nodo.nombre.includes(\"Disposiciones generales\"))) {\n        estamosEnSeccion1 = true;\n    }\n    \n    // Si el nodo marca el inicio de otras secciones, bloqueamos (por si el JSON viene mezclado)\n    if (nodo.codigo && [\"2A\", \"2B\", \"3\", \"4\", \"5\"].some(c => nodo.codigo.startsWith(c))) {\n        estamosEnSeccion1 = false;\n    }\n\n    // --- B. EXTRACCIÓN DEL CONTENIDO ---\n    const titulo = nodo.titulo || nodo['título'];\n    \n    // Verificamos que tenga título y algún identificador o URL válido\n    if (titulo && (nodo.id || nodo.identificador || nodo.url_pdf || nodo.url_html)) {\n        \n        // ÚNICO FILTRO: ¿Estamos en la Sección 1?\n        if (estamosEnSeccion1) {\n            \n            // Limpieza de links (para evitar objetos complejos)\n            let linkPdf = \"\";\n            if (nodo.url_pdf) linkPdf = (typeof nodo.url_pdf === 'object') ? nodo.url_pdf.texto : nodo.url_pdf;\n            \n            let linkHtml = \"\";\n            if (nodo.url_html) linkHtml = (typeof nodo.url_html === 'object') ? nodo.url_html.texto : nodo.url_html;\n\n            // Guardamos directamente sin mirar palabras clave\n            leyesEncontradas.push({\n                json: {\n                    titulo: titulo,\n                    url_pdf: linkPdf || \"\",\n                    url_html: linkHtml || \"\",\n                    id: nodo.id || nodo.identificador || \"SIN-ID\",\n                    departamento: departamentoActual\n                }\n            });\n        }\n    }\n\n    // --- C. CONTEXTO Y RECURSIVIDAD ---\n    // Actualizamos el nombre del departamento/organismo si estamos bajando niveles\n    let nuevoContexto = departamentoActual;\n    if (nodo.nombre && (nodo.codigo || nodo.etiqueta)) nuevoContexto = nodo.nombre;\n    if (nodo.departamento && typeof nodo.departamento === 'string') nuevoContexto = nodo.departamento;\n\n    // Iteramos sobre los hijos (sea array u objeto)\n    if (Array.isArray(nodo)) {\n        for (const hijo of nodo) {\n            buscarLeyes(hijo, estamosEnSeccion1, nuevoContexto);\n        }\n    } else {\n        for (const clave in nodo) {\n            if (Object.prototype.hasOwnProperty.call(nodo, clave)) {\n                buscarLeyes(nodo[clave], estamosEnSeccion1, nuevoContexto);\n            }\n        }\n    }\n}\n\n// --- EJECUCIÓN ---\nfor (const item of items) {\n    buscarLeyes(item.json);\n}\n\n// --- STOP SI VACÍO ---\n// Si hoy no hubo nada en la sección 1 (raro, pero posible fines de semana o festivos)\nif (leyesEncontradas.length === 0) {\n    return [{ json: { stop: \"si\" } }];\n}\n\nreturn leyesEncontradas;\n\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -784,
+        192
+      ],
+      "id": "b86cbbc8-6016-411d-b500-857af74d237b",
+      "name": "Filtrar leyes",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "content": "Preparación y limpieza de datos . \nScraping en urls de cada dato , ley o modificación.",
+        "height": 608,
+        "width": 880
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -400,
+        -160
+      ],
+      "typeVersion": 1,
+      "id": "2ca79448-c0f7-4aa5-bd45-35cc02ce4467",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "Agente + LLM, Gemini 2.5 flash trabaja en los datos y obtiene la información más importante",
+        "height": 736,
+        "width": 400,
+        "color": 7
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        464,
+        -288
+      ],
+      "typeVersion": 1,
+      "id": "1033125a-3e35-4a9a-b538-558b7c22e661",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "Agrupación de leyes y preparar archivos para enviar al usuario \ncopia de Registro de leyes en sheets\nAlmacenamiento en base de datos vectorial para posterior consulta de Chabot",
+        "height": 880,
+        "width": 1392,
+        "color": 5
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        768,
+        -432
+      ],
+      "typeVersion": 1,
+      "id": "18f5fe73-d4e8-46af-897c-f2c0db927f07",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "leyes-boe",
+          "mode": "list",
+          "cachedResultName": "leyes-boe"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        912,
+        -304
+      ],
+      "id": "1f69673a-133c-4ac9-a9f2-cd311552ce86",
+      "name": "Pinecone Vector Store1",
+      "credentials": {
+        "pineconeApi": {
+          "id": "J1VOalZIkPSZFlNm",
+          "name": "PineconeApi account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        928,
+        -80
+      ],
+      "id": "cf62581d-0f88-4109-8ead-5f5d0b17c2a7",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "dLNAkT6kyoQxCSbF",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $('AI Agent').item.json.output }}",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "titulo",
+                "value": "={{ $('Hay Novedades diarias').item.json.titulo }}"
+              },
+              {
+                "name": "url",
+                "value": "={{ $('Hay Novedades diarias').item.json.url_html || $('Hay Novedades diarias').item.json.url_pdf }}"
+              },
+              {
+                "name": "fecha",
+                "value": "={{ $today.format('yyyy-MM-dd') }}"
+              },
+              {
+                "name": "id",
+                "value": "={{ $('Hay Novedades diarias').item.json.id }}"
+              },
+              {
+                "name": "url",
+                "value": "={{ $('Filtrar leyes').item.json.url_html }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        1056,
+        -80
+      ],
+      "id": "260d3e76-4f50-422c-8748-994ef033af3f",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9e7136a0-4949-4c93-9f19-47d134fb1747",
+              "name": "titulo",
+              "value": "={{ $json.titulo }}",
+              "type": "string"
+            },
+            {
+              "id": "8eda8159-372d-455c-87a3-ad60a0db624f",
+              "name": "url_html",
+              "value": "={{ $json.url_html }}",
+              "type": "string"
+            },
+            {
+              "id": "28551923-d83d-4114-a5ec-e8b987a7e840",
+              "name": "departamento",
+              "value": "={{ $json.departamento }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -336,
+        96
+      ],
+      "id": "7084b348-db46-47b4-870d-0853073bf1d1",
+      "name": "Filtrar datos",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "sendTo": "=ropruebaswork@gmail.com",
+        "subject": "=Revisión BOE - {{ $now.setZone('Europe/Madrid').toFormat(\"d 'de' MMMM 'de' yyyy\", { locale: \"es\" }) }} - Sin novedades",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n<meta charset=\"UTF-8\">\n<style>\n    /* Estilos base */\n    body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }\n    .container { width: 100%; table-layout: fixed; background-color: #f4f4f4; padding-bottom: 40px; }\n    .email-wrapper { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }\n    \n    /* Cabecera Roja con icono */\n    .header { background-color: #D65551; color: #ffffff; padding: 20px; text-align: center; font-size: 20px; font-weight: bold; }\n    \n    /* Cuerpo del mensaje */\n    .content { padding: 30px; color: #333333; line-height: 1.6; font-size: 16px; }\n    p { margin-bottom: 15px; }\n    \n    /* Estilo para el mensaje de \"Todo OK\" */\n    .status-ok { color: #2e7d32; font-weight: bold; }\n</style>\n</head>\n<body>\n    <div class=\"container\">\n        <br>\n        <div class=\"email-wrapper\">\n            <div class=\"header\">\n                ⚖️ Informe Diario BOE\n            </div>\n\n            <div class=\"content\">\n                <p><strong>Estimada Silvia:</strong></p>\n\n                <p>Por medio del presente le comunico que en la edición de hoy, {{ $now.setZone('Europe/Madrid').toFormat(\"d 'de' MMMM 'de' yyyy\", { locale: \"es\" }) }}, del Boletín Oficial del Estado no se han hallado disposiciones generales, leyes ni modificaciones legislativas.</p>\n\n                <p class=\"status-ok\">✅ Por tanto, no hay acciones requeridas para la fecha actual.</p> \n                \n                <p>Continuamos con el seguimiento diario habitual.</p>\n\n                <p>Un saludo 👋</p>\n            </div>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {
+          "appendAttribution": false,
+          "bccList": "sipasa@hotmail.es, rpastor79s@gmail.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        -336,
+        288
+      ],
+      "id": "9ead8ce7-a761-48a7-bc88-690c09b6e274",
+      "name": "Enviar confirmación",
+      "webhookId": "eeddbcdb-d4be-43b7-a7f3-036de95b1538",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oxfABJQiqJ3P3Ohl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url_html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -112,
+        96
+      ],
+      "id": "c1998c0d-c05d-4510-8f04-87bef4c8f6a3",
+      "name": "Obtener información boe"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "ley",
+              "cssSelector": "div#textoxslt",
+              "returnValue": "html"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        112,
+        96
+      ],
+      "id": "e7190d67-5288-4fa0-a5ba-4d2b3fffc83c",
+      "name": "Extraer data"
+    },
+    {
+      "parameters": {
+        "html": "={{ $json.ley }}",
+        "options": {
+          "keepDataImages": false
+        }
+      },
+      "type": "n8n-nodes-base.markdown",
+      "typeVersion": 1,
+      "position": [
+        336,
+        96
+      ],
+      "id": "4c7199fc-937f-4cd9-b2e7-b89f5286809c",
+      "name": "Convertir html a Markdown"
+    },
+    {
+      "parameters": {
+        "url": "=https://www.boe.es/datosabiertos/api/boe/sumario/{{ $now.toFormat('yyyyMMdd') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -1008,
+        192
+      ],
+      "id": "7b0bbfda-7f79-4a67-80c5-a0b1ff674f03",
+      "name": "Obtener leyes diarias"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1dmcPd3PDeObVREWMW0XK55fiuC077RGzf8Zey1E3CdM",
+          "mode": "list",
+          "cachedResultName": "Registro leyes boe",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dmcPd3PDeObVREWMW0XK55fiuC077RGzf8Zey1E3CdM/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Hoja 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1dmcPd3PDeObVREWMW0XK55fiuC077RGzf8Zey1E3CdM/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $('Filtrar leyes').item.json.id }}",
+            "Título": "={{ $('Filtrar leyes').item.json.titulo }}",
+            "Enlace": "={{ $('Filtrar leyes').item.json.url_html }}",
+            "Fecha": "={{ $now.toFormat('yyyy-MM-dd') }}",
+            "Resumen IA": "={{ $json.output.replace(/<\\/p>|<\\/li>|<br\\s*\\/?>/gi, '\\n').replace(/<[^>]+>/g, '').trim() }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Título",
+              "displayName": "Título",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Resumen IA",
+              "displayName": "Resumen IA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Enlace",
+              "displayName": "Enlace",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        976,
+        288
+      ],
+      "id": "a41750d7-cf17-4fef-8475-f3489fd0a43e",
+      "name": "Crear registros novedades",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "qMH1sFQpcnh8fAbT",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "ropruebaswork@gmail.com",
+        "subject": "={{ $('Construir email').item.json.asunto }}",
+        "message": "={{ $('Construir email').item.json.email_body }}",
+        "options": {
+          "appendAttribution": false,
+          "attachmentsUi": {
+            "attachmentsBinary": [
+              {}
+            ]
+          },
+          "bccList": "rpastor79s@gmail.com"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        1712,
+        96
+      ],
+      "id": "2e398324-6ac8-4b24-93cc-d41c82111b13",
+      "name": "Enviar leyes usuario",
+      "webhookId": "eeddbcdb-d4be-43b7-a7f3-036de95b1538",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "oxfABJQiqJ3P3Ohl",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Recuperación de datos (Igual que antes)\nconst items = $input.all();\nconst listaResumenes = items[0].json.data || [];\nconst datosOriginales = $('Hay Novedades diarias').all(); \nconst fechaHoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });\n\n// --- PARTE A: EL ARCHIVO ADJUNTO (INFORME COMPLETO) ---\nlet informeHTML = `\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>Resumen BOE - ${fechaHoy}</title>\n    <style>\n        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f4; padding: 20px; color: #333; }\n        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }\n        .header { text-align: center; border-bottom: 2px solid #2c3e50; padding-bottom: 20px; margin-bottom: 30px; }\n        .card { border-left: 5px solid #e74c3c; background: #fff; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }\n        .btn { display: inline-block; background: #2c3e50; color: white; padding: 8px 15px; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 10px;}\n        h1 { color: #2c3e50; margin: 0; }\n        h3 { color: #e74c3c; margin-top: 0; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>⚖️ Boletín Oficial del Estado (Resumen IA)</h1>\n            <p>Fecha de emisión: ${fechaHoy}</p>\n        </div>\n`;\n\nfor (let i = 0; i < listaResumenes.length; i++) {\n    // Lógica de recuperación (Igual que antes)\n    let resumen = listaResumenes[i].output || listaResumenes[i].text || listaResumenes[i].response;\n    if (!resumen || (typeof resumen === 'string' && resumen.length > 4000)) { resumen = \"<p><em>⚠️ Resumen no disponible.</em></p>\"; }\n    \n    const original = datosOriginales[i] ? datosOriginales[i].json : {};\n    const linkOriginal = original.url_html || original.url_pdf || \"#\";\n    const titulo = original.titulo || \"Noticia sin título\";\n\n    informeHTML += `\n        <div class=\"card\">\n            ${resumen.includes('<h3>') ? '' : `<h3>${titulo}</h3>`}\n            ${resumen}\n            <br>\n            <a href=\"${linkOriginal}\" class=\"btn\" target=\"_blank\">🔗 Leer en BOE</a>\n        </div>\n    `;\n}\n\ninformeHTML += `\n        <div style=\"text-align: center; font-size: 12px; color: #aaa; margin-top: 30px;\">\n            Generado automáticamente por n8n + Gemini\n        </div>\n    </div>\n</body>\n</html>\n`;\n\n// --- PARTE B: EL CUERPO DEL EMAIL (CORTO) ---\nconst cuerpoEmail = `\n<div style=\"font-family: Arial, sans-serif;\">\n    <h3>Buenos días,</h3>\n    <p>Adjunto a este correo encontrarás el <strong>Informe de Novedades Penales</strong> correspondiente al día <strong>${fechaHoy}</strong>.</p>\n    <p>Se han analizado y resumido <strong>${listaResumenes.length} normas</strong> publicadas hoy en el BOE.</p>\n    <p>Descarga el archivo adjunto para leerlo cómodamente.</p>\n    <br>\n    <p><em>Tu Asistente Legal IA</em></p>\n</div>\n`;\n\nreturn [{\n    json: {\n        email_body: cuerpoEmail,   // Texto corto para el email\n        html_report: informeHTML,  // Texto largo para el archivo\n        nombre_archivo: `Resumen_BOE_${fechaHoy.replace(/ /g, '_')}.html`,\n        asunto: `📁 Informe BOE Adjunto - ${fechaHoy}`\n    }\n}];\n\n\n/* // 1. Obtenemos los resúmenes (que vienen del Agente -> Aggregate)\nconst items = $input.all();\nconst listaResumenes = items[0].json.data || [];\n\n// 2. TRUCO DE RECUPERACIÓN: \n// Miramos \"hacia atrás\" al nodo 'If' para recuperar los links que el HTTP Request borró.\n// (Asegúrate de que tu nodo de filtro se llame \"If\", si no cámbialo aquí abajo)\nconst datosOriginales = $('Hay Novedades diarias').all(); \n\nconst fechaHoy = new Date().toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });\n\nlet emailHTML = `\n<div style=\"font-family: Arial, sans-serif; color: #333; max-width: 600px; margin: 0 auto;\">\n    <div style=\"background-color: #2c3e50; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;\">\n        <h1 style=\"color: #ffffff; margin: 0; font-size: 24px;\">⚖️ Resumen Judicial Diario</h1>\n        <p style=\"color: #ecf0f1; margin: 5px 0 0;\">Novedades del BOE | ${fechaHoy}</p>\n    </div>\n    \n    <div style=\"padding: 20px; background-color: #f9f9f9; border: 1px solid #ddd; border-top: none;\">\n`;\n\n// 3. Bucle usando un índice (i) para emparejar Resumen con Dato Original\nfor (let i = 0; i < listaResumenes.length; i++) {\n    \n    // A. El Resumen (viene del Agente)\n    let resumen = listaResumenes[i].output || listaResumenes[i].text || listaResumenes[i].response;\n    \n    // Limpieza de seguridad por si el resumen falla\n    if (!resumen || (typeof resumen === 'string' && resumen.length > 4000)) {\n        resumen = \"<p><em>⚠️ Resumen no disponible.</em></p>\";\n    }\n\n    // B. El Link y Título (viene del pasado, del nodo 'If')\n    // Usamos el mismo índice 'i' porque el orden se mantiene\n    const original = datosOriginales[i] ? datosOriginales[i].json : {};\n    const linkOriginal = original.url_html || original.url_pdf || \"#\";\n    const titulo = original.titulo || \"Noticia sin título\";\n\n    // C. Construimos la tarjeta HTML\n    emailHTML += `\n        <div style=\"background-color: #ffffff; padding: 15px; margin-bottom: 20px; border-left: 5px solid #e74c3c; box-shadow: 0 2px 4px rgba(0,0,0,0.1);\">\n            ${resumen.includes('<h3>') ? '' : `<h3>${titulo}</h3>`}\n            \n            ${resumen}\n            \n            <div style=\"margin-top: 15px; text-align: right; border-top: 1px solid #eee; padding-top: 10px;\">\n                 <a href=\"${linkOriginal}\" target=\"_blank\" style=\"background-color: #2c3e50; color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: bold;\">🔗 Leer texto oficial en BOE</a>\n            </div>\n        </div>\n    `;\n}\n\n// 4. Cierre\nemailHTML += `\n    </div>\n    <div style=\"text-align: center; padding: 15px; font-size: 12px; color: #7f8c8d;\">\n        <p>Generado automáticamente con n8n y Gemini Flash ⚡</p>\n    </div>\n</div>\n`;\n\nreturn [{\n    json: {\n        email_body: emailHTML,\n        asunto: `⚖️ Novedades Penales BOE - ${fechaHoy}`\n    }\n}]; */"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1264,
+        96
+      ],
+      "id": "55786fe1-916f-4f8b-b0f4-5d82804f1718",
+      "name": "Construir email"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "html_report",
+        "options": {
+          "fileName": "={{ $json.nombre_archivo }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1488,
+        96
+      ],
+      "id": "f4db4428-affa-4d2b-8e16-a999c58126a5",
+      "name": "Crear archivo de descarga"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        976,
+        96
+      ],
+      "id": "39546531-5ee0-4db8-9961-eb72e03ea7c3",
+      "name": "Agrupar datos"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "20875c87-9d7d-4e42-949d-b4f4df5dd134",
+              "leftValue": "={{ $json.stop }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -560,
+        192
+      ],
+      "id": "3aec4c4a-6288-44d0-94ba-69f9a8b12cb2",
+      "name": "Hay Novedades diarias",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1936,
+        96
+      ],
+      "id": "033a5d77-2389-4d4b-b2de-9b2d242b0963",
+      "name": "No Operation, do nothing1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        288
+      ],
+      "id": "505a71e4-ce45-4bc9-8cd7-d7f04f97f754",
+      "name": "No Operation, do nothing2"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1264,
+        -208
+      ],
+      "id": "8b6f961d-c01d-478b-9c0d-fc5a2aad40d2",
+      "name": "No Operation, do nothing"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Obtener leyes diarias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Agrupar datos",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Crear registros novedades",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar leyes": {
+      "main": [
+        [
+          {
+            "node": "Hay Novedades diarias",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filtrar datos": {
+      "main": [
+        [
+          {
+            "node": "Obtener información boe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener información boe": {
+      "main": [
+        [
+          {
+            "node": "Extraer data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extraer data": {
+      "main": [
+        [
+          {
+            "node": "Convertir html a Markdown",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convertir html a Markdown": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener leyes diarias": {
+      "main": [
+        [
+          {
+            "node": "Filtrar leyes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar leyes usuario": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Construir email": {
+      "main": [
+        [
+          {
+            "node": "Crear archivo de descarga",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear archivo de descarga": {
+      "main": [
+        [
+          {
+            "node": "Enviar leyes usuario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agrupar datos": {
+      "main": [
+        [
+          {
+            "node": "Construir email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Hay Novedades diarias": {
+      "main": [
+        [
+          {
+            "node": "Filtrar datos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Enviar confirmación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pinecone Vector Store1": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear registros novedades": {
+      "main": [
+        [
+          {
+            "node": "No Operation, do nothing2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "HuqIYk6ROHOyVUrm"
+  },
+  "versionId": "e779ce69-c6c8-4928-ac32-4ba8fa1f4618",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "4fa8d68f90c36ba661f4e0633d48090fe4f8753a911b0a36ff5659d288034836"
+  },
+  "id": "nAS5xOzUrHIU1R3U",
+  "tags": [
+    {
+      "updatedAt": "2025-12-19T09:04:41.822Z",
+      "createdAt": "2025-12-19T09:04:41.822Z",
+      "id": "Ea2R2gU8jjmKzyaq",
+      "name": "gmail, sheets, pinecode"
+    },
+    {
+      "updatedAt": "2025-11-27T07:39:42.911Z",
+      "createdAt": "2025-11-27T07:39:42.911Z",
+      "id": "uU3cLm8lLUOgowtU",
+      "name": "AiAgent"
+    },
+    {
+      "updatedAt": "2025-12-19T09:04:17.564Z",
+      "createdAt": "2025-12-19T09:04:17.564Z",
+      "id": "xZqpS7k00ycqe08z",
+      "name": "http-request, scrapping,"
+    }
+  ]
+}
