@@ -24,7 +24,3 @@ dist-ssr
 *.sln
 *.sw?
 
-# Local JSONs
-Liria_ChatBot_Boe.json
-Liria_Gestor_errores_global.json
-Liria_flujo_boe.json
