@@ -24,3 +24,7 @@ dist-ssr
 *.sln
 *.sw?
 
+# Exports de flujos n8n (contienen emails e IDs): no subir al repo
+Flujo_*.json
+Liria_*.json
+liria_*.json
