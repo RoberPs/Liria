@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 
-const Login = ({ onLogin }) => {
+const Login = ({ onLogin, invalidCode = false }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (password === import.meta.env.VITE_APP_PASSWORD) {
-      onLogin();
+    // El código lo valida n8n al enviar el primer mensaje (401 si no coincide)
+    if (password.trim()) {
+      onLogin(password.trim());
     } else {
       setError(true);
       setTimeout(() => setError(false), 2000);
@@ -58,6 +59,12 @@ const Login = ({ onLogin }) => {
         </h1>
         <p style={{ color: '#64748b', marginBottom: '2rem' }}>Acceso restringido</p>
 
+        {invalidCode && (
+          <p style={{ color: '#ef4444', marginBottom: '1rem', fontSize: '0.9rem' }}>
+            Código de acceso no válido
+          </p>
+        )}
+
         <form onSubmit={handleSubmit}>
 
           <div style={{ position: 'relative', marginBottom: '1rem' }}>
@@ -65,7 +72,7 @@ const Login = ({ onLogin }) => {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Contraseña"
+              placeholder="Código de acceso"
               style={{
                 width: '100%',
                 padding: '12px 16px',

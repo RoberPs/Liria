@@ -6,7 +6,7 @@ import { sendMessageToWebhook } from '../services/api';
 const botAvatarUrl = "/user_avatar.jpg"; // Avatar local desde public/user_avatar.jpg
 const humanAvatarUrl = "/human_avatar.jpg"; // Avatar del usuario
 
-const ChatInterface = ({ onLogout }) => {
+const ChatInterface = ({ onLogout, accessCode, onInvalidCode }) => {
   const [messages, setMessages] = useState([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -118,7 +118,7 @@ const ChatInterface = ({ onLogout }) => {
       // Prepare history for context if needed (optional)
       const history = messages.map(m => ({ role: m.sender, content: m.text }));
       
-      const response = await sendMessageToWebhook(newUserMessage.text, history, conversationId.current);
+      const response = await sendMessageToWebhook(newUserMessage.text, history, conversationId.current, accessCode);
       
       // Check for 'respuesta' as configured in n8n, fallback to other common keys
       let botText = response.respuesta || response.output || response.text || response.message || "Respuesta recibida del webhook.";
@@ -138,7 +138,13 @@ const ChatInterface = ({ onLogout }) => {
       setMessages(prev => [...prev, newBotMessage]);
     } catch (error) {
       console.error("Chat Error:", error);
-      
+
+      // Código de acceso rechazado por n8n: volver a la pantalla de acceso
+      if (error.status === 401) {
+        onInvalidCode();
+        return;
+      }
+
       const date = new Date();
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
