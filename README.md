@@ -1,52 +1,54 @@
-# Liria - Jurista Especializada en BOE
+# Liria – asistente penalista del BOE
 
-**Liria** es un asistente virtual inteligente diseñado para ayudar a profesionales y ciudadanos a navegar y comprender las disposiciones del Boletín Oficial del Estado (BOE).
+**Liria** es un chatbot que responde consultas de derecho penal y procesal penal español citando únicamente fuentes oficiales de [boe.es](https://www.boe.es). Demo: https://liriaboe.netlify.app/ (el acceso requiere un código de demo).
 
-![Liria Chat Interface](/placeholder_image_if_we_had_one.png)
+## Cómo funciona
 
-## 🚀 Características Principales
+```
+Navegador (React + Vite, Netlify)
+        │  POST /webhook/n8n_chat  { chatInput, sessionId, code }
+        ▼
+Cloudflare Tunnel (solo /webhook/*, con límite de peticiones por IP)
+        ▼
+n8n (Docker, local)
+  ├─ valida el código de demo (401 si no coincide)
+  └─ agente Claude Sonnet con memoria de conversación y herramientas:
+       · lectura de un artículo desde la API de legislación consolidada del BOE
+       · base vectorial (Pinecone) con las novedades diarias del BOE
+       · sumario del BOE del día
+       · búsqueda web restringida a boe.es (último recurso)
+```
 
-- **🤖 Inteligencia Artificial**: Conversación natural para consultas legales complejas.
-- **🔒 Acceso Seguro**: Sistema de login protegido para usuarios autorizados.
-- **⚡ Integración en Tiempo Real**: Conexión con flujos de automatización en **n8n** para procesar información actualizada del BOE.
-- **🎙️ Interacción por Voz**: Dictado de preguntas mediante la API de reconocimiento de voz del navegador.
-- **📱 Diseño Responsivo**: Interfaz moderna y adaptada a dispositivos móviles y escritorio.
+Una segunda automatización de n8n lee cada día laborable el sumario del BOE, filtra las disposiciones penales, las resume y las guarda en Pinecone.
 
-## 🛠️ Tecnologías
+## Este repositorio
 
-Este proyecto está construido con un stack moderno y eficiente:
+Contiene solo el **frontend**. Los flujos de n8n y la configuración del servidor no se publican aquí porque incluyen datos de la instalación.
 
-- **React 19**: Biblioteca principal para la interfaz de usuario.
-- **Vite**: Entorno de desarrollo ultrarrápido.
-- **n8n**: Backend de automatización para la lógica de negocio y consultas al BOE.
+- Chat con respuestas en Markdown, enlace a la fuente oficial, botón *Reintentar* y dictado por voz.
+- La validación del código la hace el servidor: en el navegador no hay contraseñas ni claves.
 
-## 📦 Instalación y Uso
+## Desarrollo local
 
-### Prerrequisitos
+Requisitos: Node.js 18 o superior.
 
-- Node.js (v18 o superior)
-- npm
+```bash
+npm install
+cp .env.example .env     # y rellena VITE_N8N_WEBHOOK_URL
+npm run dev              # http://localhost:5173
+npm run build            # genera dist/
+```
 
-### Pasos
+| Variable | Descripción |
+|---|---|
+| `VITE_N8N_WEBHOOK_URL` | URL pública del webhook de n8n (no es secreta). Ejemplo: `https://<dominio>/webhook/n8n_chat` |
 
-1.  **Clonar el repositorio** (si aplica) o descargar el código.
-2.  **Instalar dependencias**:
-    ```bash
-    npm install
-    ```
-3.  **Configurar entorno**:
-    Crea un archivo `.env` en la raíz del proyecto con las siguientes variables:
-    ```env
-    VITE_APP_PASSWORD=tu_contraseña_secreta
-    VITE_N8N_USERNAME=usuario_n8n
-    VITE_N8N_PASSWORD=password_n8n
-    ```
-4.  **Iniciar servidor de desarrollo**:
-    ```bash
-    npm run dev
-    ```
-    La aplicación estará disponible en `http://localhost:5173`.
+> Las variables `VITE_*` acaban en el bundle público: no pongas aquí secretos.
 
-## 📄 Licencia
+## Tecnologías
 
-Este proyecto es privado y de uso restringido. Todos los derechos reservados.
+React 19 · Vite · n8n · Claude (Anthropic) · Pinecone · Cloudflare Tunnel · Netlify.
+
+## Aviso
+
+Liria es una herramienta de consulta y no sustituye el asesoramiento de un abogado.
