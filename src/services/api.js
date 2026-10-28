@@ -4,6 +4,9 @@
 
 const WEBHOOK_URL = import.meta.env.VITE_N8N_WEBHOOK_URL;
 
+// Si n8n no responde en este tiempo (p. ej. Gemini saturado reintentando), se corta
+const REQUEST_TIMEOUT_MS = 60000;
+
 export const sendMessageToWebhook = async (message, history = [], sessionId, code) => {
   try {
     const response = await fetch(WEBHOOK_URL, {
@@ -17,6 +20,7 @@ export const sendMessageToWebhook = async (message, history = [], sessionId, cod
         sessionId: sessionId, // Unique ID for the conversation
         code: code // Código de acceso; lo valida n8n
       }),
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
 
     if (!response.ok) {

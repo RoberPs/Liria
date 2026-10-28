@@ -102,22 +102,32 @@ const ChatInterface = ({ onLogout, accessCode, onInvalidCode }) => {
   const handleSendMessage = async (e) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
+    const text = inputValue;
+    setInputValue('');
+    await sendText(text);
+  };
 
+  // Reintento: reenvía la pregunta fallida sin duplicar el mensaje del usuario
+  const handleRetry = async (errorId, text) => {
+    setMessages(prev => prev.filter(m => m.id !== errorId));
+    await sendText(text, true);
+  };
+
+  const sendText = async (text, isRetry = false) => {
     const newUserMessage = {
       id: Date.now(),
-      text: inputValue,
+      text,
       sender: 'user',
       timestamp: new Date()
     };
 
-    setMessages(prev => [...prev, newUserMessage]);
-    setInputValue('');
+    if (!isRetry) setMessages(prev => [...prev, newUserMessage]);
     setIsLoading(true);
 
     try {
       // Prepare history for context if needed (optional)
-      const history = messages.map(m => ({ role: m.sender, content: m.text }));
-      
+      const history = messages.filter(m => !m.isError).map(m => ({ role: m.sender, content: m.text }));
+
       const response = await sendMessageToWebhook(newUserMessage.text, history, conversationId.current, accessCode);
       
       // Check for 'respuesta' as configured in n8n, fallback to other common keys
@@ -153,10 +163,11 @@ const ChatInterface = ({ onLogout, accessCode, onInvalidCode }) => {
 
       const errorMessage = {
         id: Date.now() + 1,
-        text: formatBotResponse('Lo siento, ha surgido un problema técnico al consultar la base de datos legal. Por favor, inténtalo de nuevo en unos segundos.'),
+        text: formatBotResponse('Los servidores están con mucha carga en este momento y no he podido completar la consulta. Espera unos segundos y pulsa **Reintentar**.'),
         boeLink: boeUrl,
         sender: 'bot',
         isError: true,
+        retryText: text,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMessage]);
@@ -178,7 +189,7 @@ const ChatInterface = ({ onLogout, accessCode, onInvalidCode }) => {
         
         {/* Títulos */}
         <h1 className="brand-title" style={{ fontFamily: '"Playfair Display", serif' }}>Liria</h1>
-        <p className="brand-subtitle">Jurista Especializada en BOE</p>
+        <p className="brand-subtitle">Asistente penalista del BOE</p>
         
         {/* Botón borrar discreto */}
         <div className="header-actions" style={{ display: 'flex', gap: '8px' }}>
@@ -229,6 +240,16 @@ const ChatInterface = ({ onLogout, accessCode, onInvalidCode }) => {
                     >
                       {msg.text}
                     </ReactMarkdown>
+                    {msg.isError && msg.retryText && (
+                      <button
+                        type="button"
+                        onClick={() => handleRetry(msg.id, msg.retryText)}
+                        disabled={isLoading}
+                        style={{ marginTop: '10px', padding: '6px 14px', borderRadius: '16px', border: '1px solid #2563eb', background: 'transparent', color: '#2563eb', fontWeight: 'bold', cursor: 'pointer' }}
+                      >
+                        🔄 Reintentar
+                      </button>
+                    )}
                     {/* Display BOE link if available */}
                     {msg.boeLink && (
                       <div style={{ marginTop: '10px', paddingTop: '10px', borderTop: '1px solid rgba(0,0,0,0.1)' }}>
